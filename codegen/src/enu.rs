@@ -29,7 +29,7 @@ impl Method {
 }
 
 /// Arg type.
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum ArgType {
     HEADER,
     PATH,
@@ -57,7 +57,7 @@ impl ArgType {
     pub fn from_str(arg_type: &str) -> Result<ArgType, String> {
         match arg_type {
             "header" | "HEADER" => Ok(ArgType::HEADER),
-            "path" | "PATH" => Ok(ArgType::PATH),
+            "path" | "PATH" | "feign_path" => Ok(ArgType::PATH),
             "query" | "QUERY" => Ok(ArgType::QUERY),
             "form" | "FORM" => Ok(ArgType::FORM),
             "body" | "BODY" => Ok(ArgType::BODY),

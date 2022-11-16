@@ -1,67 +1,66 @@
-use feignhttp::feign;
+use feignhttp::{feign, Feign};
 
 const GITHUB_URL: &str = "https://api.github.com";
 
-struct Github;
+#[derive(Feign)]
+#[feign(headers = "Accept: {accept}")]
+struct Github {
+    #[feign_path("owner")]
+    user: &'static str,
+    #[feign_path]
+    repo: &'static str,
+    #[param]
+    accept: &'static str,
+}
 
 #[feign(url = GITHUB_URL)]
 impl Github {
     #[get]
-    async fn home() -> feignhttp::Result<String> {}
+    async fn home(&self) -> feignhttp::Result<String> {}
 
-    #[get("/repos/{owner}/{repo}")]
-    async fn repository(
-        #[path("owner")] user: &str,
-        #[path] repo: &str,
-    ) -> feignhttp::Result<String> {}
+    #[get("/repos/{owner}/{repo}", headers = "accept: application/json")]
+    async fn repository(&self) -> feignhttp::Result<String> {}
 
     #[get(path = "/repos/{owner}/{repo}/contributors")]
-    async fn contributors(
-        #[path] owner: &str,
-        #[path] repo: &str,
-        #[query] page: u32,
-    ) -> feignhttp::Result<String> {}
+    async fn contributors(&self, #[query] page: u32) -> feignhttp::Result<String> {}
 
     #[get("/repos/{owner}/{repo}/commits")]
     async fn commits(
+        &self,
         #[header] accept: &str,
-        #[path] owner: &str,
-        #[path] repo: &str,
         #[query] page: u32,
         #[query] per_page: u32,
-    ) -> feignhttp::Result<String> {}
+    ) -> feignhttp::Result<String> {
+    }
 
     // Structure method still send request.
     #[get(path = "/repos/{owner}/{repo}/languages")]
-    async fn languages(
-        &self,
-        #[path] owner: &str,
-        #[path] repo: &str,
-    ) -> feignhttp::Result<String> {}
+    async fn languages(&self) -> feignhttp::Result<String> {}
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let r = Github::home().await?;
+    let dxx_github = Github {
+        user: "dxx",
+        repo: "feignhttp",
+        accept: "*/*",
+    };
+
+    let r = dxx_github.home().await?;
     println!("github result: {}\n", r);
 
-    let r = Github::repository("dxx", "feignhttp").await?;
+    let r = dxx_github.repository().await?;
     println!("repository result: {}\n", r);
 
-    let r = Github::contributors("dxx", "feignhttp", 1).await?;
+    let r = dxx_github.contributors(1).await?;
     println!("contributors result: {}\n", r);
 
-    let r = Github::commits(
-        "application/vnd.github.v3+json",
-        "dxx",
-        "feignhttp",
-        1,
-        1,
-    )
-    .await?;
+    let r = dxx_github
+        .commits("application/vnd.github.v3+json", 1, 1)
+        .await?;
     println!("commits result: {}\n", r);
 
-    let r = Github {}.languages("dxx", "feignhttp").await?;
+    let r = dxx_github.languages().await?;
     println!("languages result: {}\n", r);
 
     Ok(())
