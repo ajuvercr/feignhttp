@@ -1,7 +1,5 @@
 use feignhttp::{feign, Feign};
 
-const GITHUB_URL: &str = "https://api.github.com";
-
 #[derive(Feign)]
 #[feign(headers = "Accept: {accept}")]
 struct Github {
@@ -13,7 +11,7 @@ struct Github {
     accept: &'static str,
 }
 
-#[feign(url = GITHUB_URL)]
+#[feign(url = "https://api.github.com/repos/{owner}/{repo}")]
 impl Github {
     #[get]
     async fn home(&self) -> feignhttp::Result<String> {}

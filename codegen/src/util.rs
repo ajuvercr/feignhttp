@@ -198,20 +198,37 @@ impl<'a> From<&'a mut Field> for PType<'a> {
     }
 }
 
+fn extract_name(attr: &Attribute) -> Option<String> {
+    let vec = get_metas(attr)?;
+    let nested_meta = vec.first()?;
+    match nested_meta {
+        syn::NestedMeta::Lit(lit) => {
+            if let syn::Lit::Str(lit) = lit {
+                if !lit.value().is_empty() {
+                    return lit.value().into();
+                }
+            }
+        }
+        _ => {
+            if let Some(name_value) = get_meta_str_value(nested_meta, "name") {
+                return name_value.into();
+            }
+        }
+    }
+    None
+}
+
 /// Parse function args.
 fn parse_args<'a>(
     types: impl Iterator<Item = PType<'a>>,
     default_arg_type: Option<ArgType>,
 ) -> syn::Result<Vec<FnArg>> {
     let mut req_args: Vec<FnArg> = Vec::new();
-    for pat_type in types {
-        let attrs = pat_type.attrs.to_vec();
-        pat_type.attrs.clear();
 
-        // Default is QUERY.
-        let mut arg_type = default_arg_type.clone();
-        let mut name = pat_type.name;
+    for pat_type in types {
+        let name = pat_type.name;
         let ident = syn::Ident::new(&name.clone(), proc_macro2::Span::call_site());
+
         match &*pat_type.ty {
             syn::Type::Path(_) | syn::Type::Reference(_) | syn::Type::Array(_) => {}
             _ => {
@@ -221,42 +238,41 @@ fn parse_args<'a>(
             }
         }
 
-        if let Some(attr) = attrs.last() {
-            let attr_ident =
-                ArgType::from_str(&attr.path.segments.last().unwrap().ident.to_string());
-            if let Err(err) = attr_ident {
-                return Err(syn::Error::new_spanned(&attr.path, err));
-            }
-            arg_type = Some(attr_ident.unwrap());
-            if let Some(vec) = get_metas(attr) {
-                if let Some(nested_meta) = vec.first() {
-                    match nested_meta {
-                        // A literal, like the `"name"` in `#[param("name")]`.
-                        syn::NestedMeta::Lit(lit) => {
-                            if let syn::Lit::Str(lit) = lit {
-                                if !lit.value().is_empty() {
-                                    name = lit.value();
-                                }
-                            }
-                        }
-                        _ => {
-                            if let Some(name_value) = get_meta_str_value(nested_meta, "name") {
-                                name = name_value;
-                            }
-                        }
-                    }
-                }
-            }
+        let mut found_one = false;
+        for (ty, attr) in pat_type
+            .attrs
+            .iter()
+            .flat_map(|x| x.path.get_ident().map(|u| (u, x)))
+            .flat_map(|(x, att)| ArgType::from_str(&x.to_string()).map(|u| (u, att)))
+        {
+            found_one = true;
+            let name = extract_name(attr).unwrap_or_else(|| name.clone());
+
+            req_args.push(FnArg {
+                arg_type: ty,
+                name,
+                var: ident.clone(),
+                var_type: pat_type.ty.clone(),
+            });
         }
 
-        if let Some(arg_type) = arg_type {
+        if let (Some(ref arg_type), false) = (&default_arg_type, found_one) {
             req_args.push(FnArg {
-                arg_type,
+                arg_type: arg_type.clone(),
                 name,
                 var: ident,
                 var_type: pat_type.ty.clone(),
             });
         }
+
+        pat_type.attrs.retain(|x| {
+            if let Some(i) = x.path.get_ident() {
+                let i = i.to_string();
+                !i.as_str().parse::<ArgType>().is_ok()
+            } else {
+                true
+            }
+        });
     }
 
     Ok(req_args)
