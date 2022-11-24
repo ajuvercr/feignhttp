@@ -25,7 +25,7 @@ members = ["codegen"]
 [features]
 default = ["reqwest-client"]
 
-reqwest-client = ["reqwest"]
+reqwest-client = ["reqwest", "reqwest/multipart"]
 isahc-client = ["isahc"]
 
 json = ["serde_json", "reqwest/json", "isahc/json"]

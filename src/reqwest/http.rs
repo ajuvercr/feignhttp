@@ -133,6 +133,13 @@ impl RequestWrapper {
             Err(e) => Err(Error::new(ErrorKind::Request, Some(e))),
         };
     }
+    pub async fn send_multipart(
+        mut self,
+        multi: reqwest::multipart::Form,
+    ) -> Result<ResponseWrapper> {
+        self.request = self.request.multipart(multi);
+        self.send_body(None).await
+    }
 
     pub async fn send(self) -> Result<ResponseWrapper> {
         self.send_body(None).await

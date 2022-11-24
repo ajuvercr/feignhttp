@@ -3,3 +3,4 @@ mod http;
 mod log;
 
 pub use self::http::*;
+pub use reqwest::multipart::Form;

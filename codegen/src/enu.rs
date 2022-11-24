@@ -37,6 +37,7 @@ pub enum ArgType {
     FORM,
     BODY,
     PARAM,
+    MULTI,
 }
 
 impl fmt::Display for ArgType {
@@ -48,6 +49,7 @@ impl fmt::Display for ArgType {
             ArgType::FORM => "form",
             ArgType::BODY => "body",
             ArgType::PARAM => "PARAM",
+            ArgType::MULTI => "multi",
         };
         write!(f, "{}", t)
     }
@@ -64,6 +66,7 @@ impl FromStr for ArgType {
             "form" => Ok(ArgType::FORM),
             "body" => Ok(ArgType::BODY),
             "param" => Ok(ArgType::PARAM),
+            "multi" => Ok(ArgType::MULTI),
             _ => Err("unknown arg type: ".to_string() + s),
         }
     }

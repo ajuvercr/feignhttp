@@ -548,6 +548,8 @@ use std::collections::HashMap;
 
 #[cfg(feature = "reqwest-client")]
 pub use crate::reqwest::*;
+#[cfg(feature = "reqwest-client")]
+pub use crate::reqwest::*;
 
 #[cfg(feature = "isahc-client")]
 mod isahc;

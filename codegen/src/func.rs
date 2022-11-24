@@ -181,6 +181,9 @@ pub fn fn_impl(
     let form_names = find_type_names(&args, ArgType::FORM, |_fn_arg| true);
     let form_vars = find_type_vars(&args, ArgType::FORM, |_fn_arg| true);
 
+    let multi_names = find_type_names(&args, ArgType::MULTI, |_fn_arg| true);
+    let multi_vars = find_type_vars(&args, ArgType::MULTI, |_fn_arg| true);
+
     let param_names = find_type_names(&args, ArgType::PARAM, |_fn_arg| true);
     let param_vars = find_type_vars(&args, ArgType::PARAM, |_fn_arg| true);
 
@@ -219,21 +222,22 @@ pub fn fn_impl(
         }
     }
 
-    let mut send_fn_call = quote! {send()};
-    if !body_vars.is_empty() {
+    let send_fn_call = if !body_vars.is_empty() {
         let body_types = find_var_types(&args, ArgType::BODY);
-        send_fn_call = get_body_fn_call(body_types.get(0).unwrap(), body_vars.get(0).unwrap());
+        get_body_fn_call(body_types.get(0).unwrap(), body_vars.get(0).unwrap())
     } else if !form_vars.is_empty() {
         let form_types = find_var_types(&args, ArgType::FORM);
         match get_form_fn_call(&form_names, &form_types, &form_vars) {
-            Ok(fn_call) => {
-                send_fn_call = fn_call;
-            }
+            Ok(fn_call) => fn_call,
             Err(e) => {
                 return Err(syn::Error::new_spanned(&sig.inputs, e));
             }
         }
-    }
+    } else if !multi_vars.is_empty() {
+        get_multi_fn_call(&multi_names, &multi_vars)
+    } else {
+        quote! { send () }
+    };
 
     let return_args = parse_return_type(sig)?;
     if return_args.is_empty() {
@@ -458,6 +462,19 @@ fn get_return_fn(return_type: &syn::Type) -> proc_macro2::TokenStream {
     } else {
         quote! {json}
     };
+}
+
+fn get_multi_fn_call(
+    multi_names: &Vec<String>,
+    multi_vars: &Vec<syn::Ident>,
+) -> proc_macro2::TokenStream {
+    let form = quote! {
+        feignhttp::Form::new()
+    #( .text(#multi_names, #multi_vars) )*
+        };
+    quote!(
+    send_multipart(#form)
+    )
 }
 
 fn get_form_fn_call(
