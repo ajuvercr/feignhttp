@@ -61,7 +61,7 @@ impl FromStr for ArgType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "header" => Ok(ArgType::HEADER),
-            "path" | "feign_path" => Ok(ArgType::PATH),
+            "path" | "url_path" => Ok(ArgType::PATH),
             "query" => Ok(ArgType::QUERY),
             "form" => Ok(ArgType::FORM),
             "body" => Ok(ArgType::BODY),

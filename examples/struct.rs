@@ -1,28 +1,30 @@
 use feignhttp::{feign, Feign};
 
 #[derive(Feign)]
-#[feign(headers = "Accept: {accept}")]
 struct Github {
-    #[feign_path("owner")]
+    #[url_path("owner")]
     user: &'static str,
-    #[feign_path]
+    #[url_path]
     repo: &'static str,
     #[param]
     accept: &'static str,
 }
 
-#[feign(url = "https://api.github.com/repos/{owner}/{repo}")]
+#[feign(
+    url = "https://api.github.com/repos/{owner}/{repo}",
+    headers = "Accept: {accept}"
+)]
 impl Github {
     #[get]
     async fn home(&self) -> feignhttp::Result<String> {}
 
-    #[get("/repos/{owner}/{repo}", headers = "accept: application/json")]
+    #[get(path = "", headers = "Accept: application/json")]
     async fn repository(&self) -> feignhttp::Result<String> {}
 
-    #[get(path = "/repos/{owner}/{repo}/contributors")]
+    #[get(path = "/contributors")]
     async fn contributors(&self, #[query] page: u32) -> feignhttp::Result<String> {}
 
-    #[get("/repos/{owner}/{repo}/commits")]
+    #[get("/commits")]
     async fn commits(
         &self,
         #[header] accept: &str,
@@ -32,7 +34,7 @@ impl Github {
     }
 
     // Structure method still send request.
-    #[get(path = "/repos/{owner}/{repo}/languages")]
+    #[get(path = "/languages")]
     async fn languages(&self) -> feignhttp::Result<String> {}
 }
 
